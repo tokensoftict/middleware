@@ -8,6 +8,7 @@ use App\Adapters\BaseServiceAdapter;
 use App\DTOs\NormalizedResponseDTO;
 use App\DTOs\ProxyRequestDTO;
 use App\DTOs\WebhookEventDTO;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
@@ -130,7 +131,7 @@ class CorvynAdapter extends BaseServiceAdapter
         $credentials = $this->getCredentials();
         $tenantCode = $credentials['tenant_code'] ?? '';
         $secret = $credentials['secret'] ?? '';
-        $timestamp = time();
+        $timestamp = Carbon::now()->timestamp;
 
         return [
             'Content-Type' => 'application/json',
