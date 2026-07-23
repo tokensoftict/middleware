@@ -70,6 +70,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Schema::defaultStringLength(191);
         $this->configureDefaults();
     }
 
@@ -78,8 +79,6 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureDefaults(): void
     {
-        Schema::defaultStringLength(191);
-
         Date::use(CarbonImmutable::class);
 
         DB::prohibitDestructiveCommands(
