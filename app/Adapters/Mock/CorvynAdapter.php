@@ -143,7 +143,7 @@ class CorvynAdapter extends BaseServiceAdapter
 
     protected function generateSignature(int $timestamp, string $rawBody, string $secret): string
     {
-        $rawBody == '' ? '[]' : $rawBody;
+        $rawBody = $rawBody === '' ? '[]' : $rawBody;
         $sigPayload = $timestamp.'.'.$rawBody;
 
         return 'sha256='.hash_hmac('sha256', $sigPayload, $secret);
