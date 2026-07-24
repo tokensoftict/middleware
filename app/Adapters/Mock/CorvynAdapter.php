@@ -129,8 +129,8 @@ class CorvynAdapter extends BaseServiceAdapter
     protected function generateHeaders(string $rawBody): array
     {
         $credentials = $this->getCredentials();
-        $tenantCode = $credentials['tenant_code'] ?? '';
-        $secret = $credentials['secret'] ?? '';
+        $tenantCode = trim($credentials['tenant_code'] ?? '');
+        $secret = trim($credentials['secret'] ?? '');
         $timestamp = Carbon::now()->timestamp;
 
         return [
@@ -143,8 +143,10 @@ class CorvynAdapter extends BaseServiceAdapter
 
     protected function generateSignature(int $timestamp, string $rawBody, string $secret): string
     {
-        $rawBody = $rawBody === '' ? '[]' : $rawBody;
-        $sigPayload = $timestamp.'.'.$rawBody;
+        // Trim all components to prevent whitespace-induced mismatches (e.g. cPanel stored credentials)
+        $secret = trim($secret);
+        $rawBody = trim($rawBody === '' ? '[]' : $rawBody);
+        $sigPayload = trim((string) $timestamp).'.'.$rawBody;
 
         return 'sha256='.hash_hmac('sha256', $sigPayload, $secret);
     }
@@ -179,7 +181,7 @@ class CorvynAdapter extends BaseServiceAdapter
     public function verifyWebhookSignature(Request $request): bool
     {
         $credentials = $this->getCredentials();
-        $secret = $credentials['secret'] ?? '';
+        $secret = trim($credentials['secret'] ?? '');
 
         if (empty($secret)) {
             // No secret configured — skip verification (sandbox convenience)
@@ -187,14 +189,14 @@ class CorvynAdapter extends BaseServiceAdapter
         }
 
         // 1. Validate timestamp
-        $timestamp = (int) $request->header(self::HEADER_TIMESTAMP, 0);
+        $timestamp = (int) trim((string) $request->header(self::HEADER_TIMESTAMP, 0));
 
         if (! $this->isTimestampValid($timestamp)) {
             return false;
         }
 
-        // 2. Read inbound signature
-        $inboundSignature = $request->header(self::HEADER_SIGNATURE, '');
+        // 2. Read inbound signature (trim to strip any stray whitespace from header value)
+        $inboundSignature = trim((string) $request->header(self::HEADER_SIGNATURE, ''));
 
         if (empty($inboundSignature)) {
             return false;
