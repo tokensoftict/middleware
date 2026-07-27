@@ -104,7 +104,7 @@ class CorvynAdapter extends BaseServiceAdapter
         }
 
         Log::info($this->outgoingHeaders);
-        $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966";
+
         try {
             $method = strtoupper($request->method);
 
