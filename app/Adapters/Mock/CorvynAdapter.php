@@ -152,8 +152,8 @@ class CorvynAdapter extends BaseServiceAdapter
         $secret = trim($secret);
         $rawBody = trim($rawBody === '' ? '[]' : $rawBody);
         $sigPayload = trim((string) $timestamp).'.'.$rawBody;
-
-        return 'sha256='.hash_hmac('sha256', $sigPayload, $secret);
+//'sha256='.
+        return hash_hmac('sha256', $sigPayload, $secret);
     }
 
     protected function handleException(RequestException $e): NormalizedResponseDTO
