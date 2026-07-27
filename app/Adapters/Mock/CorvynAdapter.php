@@ -126,6 +126,20 @@ class CorvynAdapter extends BaseServiceAdapter
         }
     }
 
+
+    protected function handleException(RequestException $e): NormalizedResponseDTO
+    {
+        $content = $e->response?->json() ?? json_decode($e->response?->body(), true) ?? ['message' => 'Service error'];
+        $content['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
+
+        return new NormalizedResponseDTO(
+            statusCode: $e->response?->status() ?? 500,
+            content: $content,
+            error: $e->getMessage()
+        );
+    }
+
+
     protected function generateHeaders(string $rawBody): array
     {
         $credentials = $this->getCredentials();
