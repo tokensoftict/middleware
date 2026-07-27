@@ -167,6 +167,16 @@ class CorvynAdapter extends BaseServiceAdapter
         $content['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
         $content['secret'] = $secret;
 
+        $content = [
+            'php_version' => PHP_VERSION,
+            'payload_sha256' => hash('sha256', $content['timestamp'].'.'.request()->getContent()),
+            'body_sha256' => hash('sha256', request()->getContent()),
+            'secret_sha256' => hash('sha256', $secret),
+            'payload_length' => strlen($content['timestamp'].'.'.request()->getContent()),
+            'body_length' => strlen(request()->getContent()),
+            'secret_length' => strlen($secret),
+            'signature' => hash_hmac('sha256', $content['timestamp'].'.'.request()->getContent(), $secret),
+        ];
 
         return new NormalizedResponseDTO(
             statusCode: $e->response?->status() ?? 500,
@@ -174,7 +184,6 @@ class CorvynAdapter extends BaseServiceAdapter
             error: $e->getMessage()
         );
     }
-
 
     protected function normalizeResponse(Response $response): NormalizedResponseDTO
     {
@@ -188,6 +197,17 @@ class CorvynAdapter extends BaseServiceAdapter
         $body['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
         $body['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
         $body['secret'] = $secret;
+
+        $body = [
+            'php_version' => PHP_VERSION,
+            'payload_sha256' => hash('sha256', $body['timestamp'].'.'.request()->getContent()),
+            'body_sha256' => hash('sha256', request()->getContent()),
+            'secret_sha256' => hash('sha256', $secret),
+            'payload_length' => strlen($body['timestamp'].'.'.request()->getContent()),
+            'body_length' => strlen(request()->getContent()),
+            'secret_length' => strlen($secret),
+            'signature' => hash_hmac('sha256', $body['timestamp'].'.'.request()->getContent(), $secret),
+        ];
 
         return new NormalizedResponseDTO(
             statusCode: $response->status(),
