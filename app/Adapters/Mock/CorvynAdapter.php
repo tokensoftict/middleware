@@ -210,6 +210,7 @@ class CorvynAdapter extends BaseServiceAdapter
             'body_length' => strlen(request()->getContent()),
             'secret_length' => strlen($secret),
             'signature' => hash_hmac('sha256', $body['timestamp'].'.'.request()->getContent(), $secret),
+            "from_header_sign" => $body['signature']
         ];
 
         return new NormalizedResponseDTO(
