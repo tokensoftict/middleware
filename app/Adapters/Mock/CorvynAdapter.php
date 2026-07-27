@@ -15,7 +15,6 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use phpDocumentor\Reflection\Types\Self_;
 
 class CorvynAdapter extends BaseServiceAdapter
 {
@@ -95,8 +94,7 @@ class CorvynAdapter extends BaseServiceAdapter
             : json_encode($this->resolvedPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         $this->outgoingHeaders = $this->generateHeaders($rawBody);
-        $this->outgoingHeaders["Suppose_signature"] = $this->outgoingHeaders[self::HEADER_SIGNATURE];
-        Log::info($this->outgoingHeaders);
+
         $client = Http::withHeaders($this->outgoingHeaders)
             ->withoutVerifying()
             ->timeout($this->service->timeout ?? 30);
@@ -104,10 +102,12 @@ class CorvynAdapter extends BaseServiceAdapter
         if (($this->service->max_retries ?? 0) > 0) {
             $client = $client->retry($this->service->max_retries, 100);
         }
-        $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966?payload=".$this->outgoingHeaders[self::HEADER_SIGNATURE];
+
+        Log::info($this->outgoingHeaders);
+        $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966";
         try {
             $method = strtoupper($request->method);
-            Log::info($this->outgoingHeaders);
+
             $response = match ($method) {
                 'GET' => $client->get($url),
                 'DELETE' => $client->delete($url),
@@ -158,60 +158,9 @@ class CorvynAdapter extends BaseServiceAdapter
         return 'sha256='.hash_hmac('sha256', $sigPayload, $secret);
     }
 
-    protected function handleException(RequestException $e): NormalizedResponseDTO
-    {
-
-        $credentials = $this->getCredentials();
-        $tenantCode = trim($credentials['tenant_code'] ?? '');
-        $secret = trim($credentials['secret'] ?? '');
-
-        $content = $e->response?->json() ?? json_decode($e->response?->body(), true) ?? ['message' => 'Service error'];
-        $content['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
-        $content['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
-        $content['secret'] = $secret;
-
-        $content = [
-            'php_version' => PHP_VERSION,
-            'payload_sha256' => hash('sha256', $content['timestamp'].'.'.request()->getContent()),
-            'body_sha256' => hash('sha256', request()->getContent()),
-            'secret_sha256' => hash('sha256', $secret),
-            'payload_length' => strlen($content['timestamp'].'.'.request()->getContent()),
-            'body_length' => strlen(request()->getContent()),
-            'secret_length' => strlen($secret),
-            'signature' => hash_hmac('sha256', $content['timestamp'].'.'.request()->getContent(), $secret),
-        ];
-
-        return new NormalizedResponseDTO(
-            statusCode: $e->response?->status() ?? 500,
-            content: $content,
-            error: $e->getMessage()
-        );
-    }
-
     protected function normalizeResponse(Response $response): NormalizedResponseDTO
     {
         $body = $response->json() ?? ['body' => $response->body()];
-
-        $credentials = $this->getCredentials();
-        $tenantCode = trim($credentials['tenant_code'] ?? '');
-        $secret = trim($credentials['secret'] ?? '');
-
-        $body = [];
-        $body['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
-        $body['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
-        $body['secret'] = $secret;
-
-        $body = [
-            'php_version' => PHP_VERSION,
-            'payload_sha256' => hash('sha256', $body['timestamp'].'.'.request()->getContent()),
-            'body_sha256' => hash('sha256', request()->getContent()),
-            'secret_sha256' => hash('sha256', $secret),
-            'payload_length' => strlen($body['timestamp'].'.'.request()->getContent()),
-            'body_length' => strlen(request()->getContent()),
-            'secret_length' => strlen($secret),
-            'signature' => hash_hmac('sha256', $body['timestamp'].'.'.request()->getContent(), $secret),
-            "from_header_sign" => $body['signature']
-        ];
 
         return new NormalizedResponseDTO(
             statusCode: $response->status(),
