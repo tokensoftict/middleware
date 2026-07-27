@@ -119,6 +119,7 @@ class CorvynAdapter extends BaseServiceAdapter
             Log::info($this->outgoingHeaders);
             return $this->normalizeResponse($response);
         } catch (RequestException $e) {
+            Log::info($this->outgoingHeaders);
             return $this->handleException($e);
         } catch (Exception $e) {
             return new NormalizedResponseDTO(
