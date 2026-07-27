@@ -14,6 +14,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use phpDocumentor\Reflection\Types\Self_;
 
 class CorvynAdapter extends BaseServiceAdapter
@@ -95,6 +96,7 @@ class CorvynAdapter extends BaseServiceAdapter
 
         $this->outgoingHeaders = $this->generateHeaders($rawBody);
         $this->outgoingHeaders["Suppose_signature"] = $this->outgoingHeaders[self::HEADER_SIGNATURE];
+        Log::info($this->outgoingHeaders);
         $client = Http::withHeaders($this->outgoingHeaders)
             ->withoutVerifying()
             ->timeout($this->service->timeout ?? 30);
@@ -105,7 +107,7 @@ class CorvynAdapter extends BaseServiceAdapter
         $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966?payload=".$this->outgoingHeaders[self::HEADER_SIGNATURE];
         try {
             $method = strtoupper($request->method);
-
+            Log::info($this->outgoingHeaders);
             $response = match ($method) {
                 'GET' => $client->get($url),
                 'DELETE' => $client->delete($url),
@@ -114,7 +116,7 @@ class CorvynAdapter extends BaseServiceAdapter
                     ->{strtolower($method)}($url),
                 default => throw new Exception("Unsupported HTTP method: {$method}"),
             };
-
+            Log::info($this->outgoingHeaders);
             return $this->normalizeResponse($response);
         } catch (RequestException $e) {
             return $this->handleException($e);
