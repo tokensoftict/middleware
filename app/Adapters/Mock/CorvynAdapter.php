@@ -171,7 +171,9 @@ class CorvynAdapter extends BaseServiceAdapter
     protected function normalizeResponse(Response $response): NormalizedResponseDTO
     {
         $body = $response->json() ?? ['body' => $response->body()];
+        $body = [];
         $body['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
+        $body['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
 
         return new NormalizedResponseDTO(
             statusCode: $response->status(),
