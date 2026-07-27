@@ -105,13 +105,10 @@ class CorvynAdapter extends BaseServiceAdapter
 
         Log::info($this->outgoingHeaders);
 
-
         Http::withHeaders($this->outgoingHeaders)
-            ->timeout($this->service->timeout ?? 30)
             ->withoutVerifying()
             ->withBody($rawBody, 'application/json')
-            ->post("https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966", 'application/json');
-
+            ->post('https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966', 'application/json');
 
         try {
             $method = strtoupper($request->method);
@@ -125,9 +122,11 @@ class CorvynAdapter extends BaseServiceAdapter
                 default => throw new Exception("Unsupported HTTP method: {$method}"),
             };
             Log::info($this->outgoingHeaders);
+
             return $this->normalizeResponse($response);
         } catch (RequestException $e) {
             Log::info($this->outgoingHeaders);
+
             return $this->handleException($e);
         } catch (Exception $e) {
             return new NormalizedResponseDTO(
@@ -136,7 +135,6 @@ class CorvynAdapter extends BaseServiceAdapter
                 error: $e->getMessage()
             );
         }
-
 
     }
 
