@@ -126,19 +126,6 @@ class CorvynAdapter extends BaseServiceAdapter
         }
     }
 
-    protected function handleException(RequestException $e): NormalizedResponseDTO
-    {
-        $content = $e->response?->json() ?? json_decode($e->response?->body(), true) ?? ['message' => 'Service error'];
-        $content['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
-        $content['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
-
-        return new NormalizedResponseDTO(
-            statusCode: $e->response?->status() ?? 500,
-            content: $content,
-            error: $e->getMessage()
-        );
-    }
-
     protected function generateHeaders(string $rawBody): array
     {
         $credentials = $this->getCredentials();
@@ -168,12 +155,39 @@ class CorvynAdapter extends BaseServiceAdapter
         return 'sha256='.hash_hmac('sha256', $sigPayload, $secret);
     }
 
+    protected function handleException(RequestException $e): NormalizedResponseDTO
+    {
+
+        $credentials = $this->getCredentials();
+        $tenantCode = trim($credentials['tenant_code'] ?? '');
+        $secret = trim($credentials['secret'] ?? '');
+
+        $content = $e->response?->json() ?? json_decode($e->response?->body(), true) ?? ['message' => 'Service error'];
+        $content['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
+        $content['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
+        $content['secret'] = $secret;
+
+
+        return new NormalizedResponseDTO(
+            statusCode: $e->response?->status() ?? 500,
+            content: $content,
+            error: $e->getMessage()
+        );
+    }
+
+
     protected function normalizeResponse(Response $response): NormalizedResponseDTO
     {
         $body = $response->json() ?? ['body' => $response->body()];
+
+        $credentials = $this->getCredentials();
+        $tenantCode = trim($credentials['tenant_code'] ?? '');
+        $secret = trim($credentials['secret'] ?? '');
+
         $body = [];
         $body['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
         $body['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
+        $body['secret'] = $secret;
 
         return new NormalizedResponseDTO(
             statusCode: $response->status(),
