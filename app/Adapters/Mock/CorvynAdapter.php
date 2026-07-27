@@ -141,7 +141,7 @@ class CorvynAdapter extends BaseServiceAdapter
             'Content-Type' => 'application/json',
             self::HEADER_TENANT_CODE => $tenantCode,
             self::HEADER_TIMESTAMP => (string) $timestamp,
-            self::HEADER_SIGNATURE => $this->generateSignature($timestamp, $rawBody, $secret),
+            self::HEADER_SIGNATURE => "sha256=jgjgjgjgjgjgjiroiororororororororjrjrjrjrjrjrhrh"//$this->generateSignature($timestamp, $rawBody, $secret),
         ];
     }
 
