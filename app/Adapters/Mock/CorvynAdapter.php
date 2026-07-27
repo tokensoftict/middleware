@@ -80,12 +80,12 @@ class CorvynAdapter extends BaseServiceAdapter
         $this->resolvedPayload = $this->resolvePayload($request->payload);
 
         $baseUrl = $this->getBaseUrl();
-        $url = rtrim($baseUrl, '/') . '/' . ltrim($request->path, '/');
+        $url = rtrim($baseUrl, '/').'/'.ltrim($request->path, '/');
 
         $queryParams = $this->resolveQueryParams($request->queryParams);
-        if (!empty($queryParams)) {
+        if (! empty($queryParams)) {
             $connector = str_contains($url, '?') ? '&' : '?';
-            $url .= $connector . http_build_query($queryParams);
+            $url .= $connector.http_build_query($queryParams);
         }
 
         $rawBody = in_array(strtoupper($request->method), ['GET', 'DELETE'], true)
@@ -109,8 +109,8 @@ class CorvynAdapter extends BaseServiceAdapter
                 'GET' => $client->get($url),
                 'DELETE' => $client->delete($url),
                 'POST', 'PUT', 'PATCH' => $client
-                        ->withBody($rawBody, 'application/json')
-                ->{strtolower($method)}($url),
+                    ->withBody($rawBody, 'application/json')
+                    ->{strtolower($method)}($url),
                 default => throw new Exception("Unsupported HTTP method: {$method}"),
             };
 
@@ -126,11 +126,11 @@ class CorvynAdapter extends BaseServiceAdapter
         }
     }
 
-
     protected function handleException(RequestException $e): NormalizedResponseDTO
     {
         $content = $e->response?->json() ?? json_decode($e->response?->body(), true) ?? ['message' => 'Service error'];
         $content['signature'] = $this->outgoingHeaders[self::HEADER_SIGNATURE] ?? null;
+        $content['timestamp'] = $this->outgoingHeaders[self::HEADER_TIMESTAMP] ?? null;
 
         return new NormalizedResponseDTO(
             statusCode: $e->response?->status() ?? 500,
@@ -138,7 +138,6 @@ class CorvynAdapter extends BaseServiceAdapter
             error: $e->getMessage()
         );
     }
-
 
     protected function generateHeaders(string $rawBody): array
     {
@@ -164,9 +163,9 @@ class CorvynAdapter extends BaseServiceAdapter
         // Trim all components to prevent whitespace-induced mismatches
         $secret = trim($secret);
         $rawBody = trim($rawBody === '' ? '[]' : $rawBody);
-        $sigPayload = trim((string) $timestamp) . '.' . $rawBody;
+        $sigPayload = trim((string) $timestamp).'.'.$rawBody;
 
-        return 'sha256=' . hash_hmac('sha256', $sigPayload, $secret);
+        return 'sha256='.hash_hmac('sha256', $sigPayload, $secret);
     }
 
     protected function normalizeResponse(Response $response): NormalizedResponseDTO
@@ -210,7 +209,7 @@ class CorvynAdapter extends BaseServiceAdapter
         // 1. Validate timestamp
         $timestamp = (int) trim((string) $request->header(self::HEADER_TIMESTAMP, 0));
 
-        if (!$this->isTimestampValid($timestamp)) {
+        if (! $this->isTimestampValid($timestamp)) {
             return false;
         }
 
