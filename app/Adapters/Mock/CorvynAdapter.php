@@ -94,7 +94,7 @@ class CorvynAdapter extends BaseServiceAdapter
             : json_encode($this->resolvedPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         $this->outgoingHeaders = $this->generateHeaders($rawBody);
-
+        $this->outgoingHeaders["Suppose_signature"] = $this->outgoingHeaders[self::HEADER_SIGNATURE];
         $client = Http::withHeaders($this->outgoingHeaders)
             ->withoutVerifying()
             ->timeout($this->service->timeout ?? 30);
