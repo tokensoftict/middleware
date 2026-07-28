@@ -27,6 +27,7 @@ class WebhookService
      */
     public function receive(Request $request, string $serviceSlug, string $service_uuid, ?string $eventType = null): void
     {
+        Log::info($request->all());
         // 1. Resolve the service
         $service = $this->serviceRepo->findByUuid($service_uuid);
 
