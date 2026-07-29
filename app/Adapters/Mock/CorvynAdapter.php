@@ -149,7 +149,7 @@ class CorvynAdapter extends BaseServiceAdapter
     {
         // Trim all components to prevent whitespace-induced mismatches
         $secret = trim($secret);
-        $rawBody = trim($rawBody === '' ? '[]' : $rawBody);
+        $rawBody = trim($rawBody === '' ? '' : $rawBody);
         $sigPayload = trim((string) $timestamp).'.'.$rawBody;
 
         return 'sha256='.hash_hmac('sha256', $sigPayload, $secret);
