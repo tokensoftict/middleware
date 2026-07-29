@@ -21,8 +21,8 @@ Route::patch('subscriptions/{id}', [SubscriptionController::class, 'update']);
 
 Route::get('logs', [LogController::class, 'index']);
 
-Route::match(['get', 'post'], 'webhook/{serviceSlug}/{service_uuid}', [WebhookController::class, 'handle'])->name('webhook.handle');
-Route::match(['get', 'post'], 'webhook/{serviceSlug}/{service_uuid}/{eventType}', [WebhookController::class, 'handle'])->name('webhook.handle.typed');
+Route::any( 'webhook/{serviceSlug}/{service_uuid}', [WebhookController::class, 'handle'])->name('webhook.handle');
+Route::any( 'webhook/{serviceSlug}/{service_uuid}/{eventType}', [WebhookController::class, 'handle'])->name('webhook.handle.typed');
 
 // API Gateway Proxy routes
 Route::any('gateway/{service_slug}/{subPath?}', [GatewayController::class, 'proxy'])->where('subPath', '.*')->middleware([AuthenticateGateway::class, RateLimitGateway::class]);
