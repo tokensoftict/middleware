@@ -18,7 +18,7 @@ class WebhookController extends Controller
     {
         Log::info($request->getContent());
 
-        return response()->json(['status' => 'ok']);
+        return response()->json(['status' => 'ok'], 200);
 
         //        try {
         //            $this->webhookService->receive($request, $serviceSlug, $service_uuid, $eventType);
