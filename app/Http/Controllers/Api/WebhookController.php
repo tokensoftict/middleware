@@ -16,7 +16,9 @@ class WebhookController extends Controller
 
     public function handle(Request $request, string $serviceSlug, string $service_uuid, ?string $eventType = null): JsonResponse
     {
-        Log::info($request->getContent());
+        Log::info('Raw Request Body', [
+            'body' => $request->getContent(),
+        ]);
 
         return response()->json(['status' => 'ok'], 200);
 
