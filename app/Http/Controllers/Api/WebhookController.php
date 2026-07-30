@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\WebhookProxyController;
 use App\Http\Controllers\Controller;
 use App\Services\Webhook\WebhookService;
 use Illuminate\Http\JsonResponse;
@@ -16,9 +17,8 @@ class WebhookController extends Controller
 
     public function handle(Request $request, string $serviceSlug, string $service_uuid, ?string $eventType = null): JsonResponse
     {
-        Log::info('Raw Request Body', [
-            'body' => $request->getContent(),
-        ]);
+
+        WebhookProxyController::forward($request, "https://webhook.site/a9ba3fc9-2be5-41b4-8306-51ac5f4bbf3a");
 
         return response()->json(['status' => 'ok'], 200);
 

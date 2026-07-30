@@ -6,9 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 class WebhookProxyController
 {
-    public static function forward(Request $request)
+    public static function forward(Request $request, string $target)
     {
-        $target = 'https://webhook.site/148c9953-376c-4253-9ed2-1e6506f963ab';
 
         if ($request->getQueryString()) {
             $target .= '?' . $request->getQueryString();
