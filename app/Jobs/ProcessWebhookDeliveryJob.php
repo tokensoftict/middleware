@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\WebhookDelivery;
 use App\Repositories\Contracts\WebhookDeliveryRepositoryInterface;
+use Carbon\CarbonInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -28,36 +29,36 @@ class ProcessWebhookDeliveryJob implements ShouldQueue
         public readonly int $timeoutSeconds = 15,
     ) {}
 
-
-    public function handle(WebhookDeliveryRepositoryInterface $deliveryRepo): void
+    final public function handle(WebhookDeliveryRepositoryInterface $deliveryRepo): void
     {
         try {
             $response = Http::timeout($this->timeoutSeconds)
                 ->retry(1, 500)
                 ->withHeaders([
-                    'Content-Type'     => 'application/json',
+                    'Content-Type' => 'application/json',
                     'X-Middleware-Event' => $this->payload['event'] ?? $this->payload['event_type'] ?? '',
+                    ...($this->delivery->delivery_payload['headers'] ?? []),
                 ])
-                ->post($this->webhookUrl, $this->payload);
+                ->post($this->webhookUrl, $this->delivery->delivery_payload['payload'] ?? []);
 
             $deliveryRepo->updateDelivery($this->delivery->id, [
                 'response_status' => $response->status(),
-                'response_body'   => is_array($response->json()) ? $response->json() : ['body' => $response->body()],
-                'status'          => $response->successful() ? 'delivered' : 'failed',
-                'delivered_at'    => $response->successful() ? now() : null,
-                'attempts'        => $this->delivery->attempts + 1,
-                'next_retry_at'   => $response->successful() ? null : $this->nextRetryAt(),
+                'response_body' => is_array($response->json()) ? $response->json() : ['body' => $response->body()],
+                'status' => $response->successful() ? 'delivered' : 'failed',
+                'delivered_at' => $response->successful() ? now() : null,
+                'attempts' => $this->delivery->attempts + 1,
+                'next_retry_at' => $response->successful() ? null : $this->nextRetryAt(),
             ]);
         } catch (Throwable $e) {
             Log::error('Webhook delivery failed', [
                 'delivery_id' => $this->delivery->id,
-                'url'         => $this->webhookUrl,
-                'error'       => $e->getMessage(),
+                'url' => $this->webhookUrl,
+                'error' => $e->getMessage(),
             ]);
 
             $deliveryRepo->updateDelivery($this->delivery->id, [
-                'status'        => 'failed',
-                'attempts'      => $this->delivery->attempts + 1,
+                'status' => 'failed',
+                'attempts' => $this->delivery->attempts + 1,
                 'next_retry_at' => $this->nextRetryAt(),
             ]);
 
@@ -65,15 +66,13 @@ class ProcessWebhookDeliveryJob implements ShouldQueue
         }
     }
 
-
-    protected function nextRetryAt(): \Carbon\CarbonInterface
+    protected function nextRetryAt(): CarbonInterface
     {
         $attempt = $this->delivery->attempts;
         $delayMinutes = min(360, 5 * (2 ** max(0, $attempt - 1)));
 
         return now()->addMinutes($delayMinutes);
     }
-
 
     public function failed(Throwable $e): void
     {
@@ -83,8 +82,8 @@ class ProcessWebhookDeliveryJob implements ShouldQueue
 
         Log::error('Webhook delivery permanently failed', [
             'delivery_id' => $this->delivery->id,
-            'url'         => $this->webhookUrl,
-            'error'       => $e->getMessage(),
+            'url' => $this->webhookUrl,
+            'error' => $e->getMessage(),
         ]);
     }
 }

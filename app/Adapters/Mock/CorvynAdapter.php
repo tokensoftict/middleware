@@ -8,6 +8,7 @@ use App\Adapters\BaseServiceAdapter;
 use App\DTOs\NormalizedResponseDTO;
 use App\DTOs\ProxyRequestDTO;
 use App\DTOs\WebhookEventDTO;
+use App\Models\ApiGatewayLog;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Client\RequestException;
@@ -45,6 +46,7 @@ class CorvynAdapter extends BaseServiceAdapter
         return [
             'tenant_code' => 'Corvyn Tenant Code (x-tenant-code header)',
             'secret' => 'Corvyn Signing Secret (HMAC-SHA256)',
+            'webhook_secret' => 'Corvyn Webhook Signing Secret (HMAC-SHA256)',
         ];
     }
 
@@ -54,8 +56,7 @@ class CorvynAdapter extends BaseServiceAdapter
     public static function getSubscriptionCredentialSchema(): array
     {
         return [
-            'webhook_success_url' => 'Webhook Success URL (where success events will be delivered)',
-            'webhook_failure_url' => 'Webhook Failure URL (where failed events will be delivered)',
+            'webhook_url' => 'Webhook URL (where events will be delivered)',
             'webhook_retries_per_day' => 'Max delivery retries per day',
             'webhook_retry_days' => 'Number of days to retry failed deliveries',
         ];
@@ -67,8 +68,7 @@ class CorvynAdapter extends BaseServiceAdapter
     public static function getSubscriptionValidationRules(): array
     {
         return [
-            'webhook_success_url' => 'nullable|url|max:255',
-            'webhook_failure_url' => 'nullable|url|max:255',
+            'webhook_url' => 'nullable|url|max:255',
             'webhook_retries_per_day' => 'nullable|integer|min:0',
             'webhook_retry_days' => 'nullable|integer|min:0',
         ];
@@ -113,6 +113,7 @@ class CorvynAdapter extends BaseServiceAdapter
                     ->{strtolower($method)}($url),
                 default => throw new Exception("Unsupported HTTP method: {$method}"),
             };
+
             return $this->normalizeResponse($response);
         } catch (RequestException $e) {
             return $this->handleException($e);
@@ -178,14 +179,13 @@ class CorvynAdapter extends BaseServiceAdapter
     {
         return [
             'success',
-            'failed',
         ];
     }
 
     public function verifyWebhookSignature(Request $request): bool
     {
         $credentials = $this->getCredentials();
-        $secret = trim($credentials['secret'] ?? '');
+        $secret = trim($credentials['webhook_secret'] ?? '');
 
         if (empty($secret)) {
             // No secret configured — skip verification (sandbox convenience)
@@ -213,6 +213,19 @@ class CorvynAdapter extends BaseServiceAdapter
         return hash_equals($expected, $inboundSignature);
     }
 
+    public function getOriginalClientApiGateWayLog(array $payload): ?ApiGatewayLog
+    {
+        if (! isset($payload['data']['transactionReference'])) {
+            return null;
+        }
+        $externalTransactionReference = $payload['data']['transactionReference'];
+
+        return ApiGatewayLog::query()
+            ->whereJsonContains('request_payload->items', ['external_transaction_id' => $externalTransactionReference])
+            ->orderBy('id', 'desc')
+            ->first();
+    }
+
     public function handleWebhook(WebhookEventDTO $event): array
     {
         $payload = $event->payload;
@@ -232,16 +245,11 @@ class CorvynAdapter extends BaseServiceAdapter
     {
         $payload = $event->payload;
 
-        return [
-            'event' => $event->eventType,
-            'service' => self::getName(),
-            'transaction_id' => $payload['transaction_id'] ?? $payload['reference'] ?? null,
-            'amount' => $payload['amount'] ?? null,
-            'currency' => $payload['currency'] ?? null,
-            'status' => $payload['status'] ?? null,
-            'metadata' => $payload['metadata'] ?? [],
-            'timestamp' => now()->toIso8601String(),
-        ];
+        $payload['event'] = $event->eventType;
+        $payload['service'] = self::getName();
+        $payload['timestamp'] = now()->toIso8601String();
+
+        return $payload;
     }
 
     private function isTimestampValid(int $timestamp): bool
@@ -256,8 +264,7 @@ class CorvynAdapter extends BaseServiceAdapter
     public function mapWebhookEventToAdapterCredentials(): array
     {
         return [
-            'success' => 'webhook_success_url',
-            'failed' => 'webhook_failed_url',
+            'success' => 'webhook_url',
         ];
     }
 }

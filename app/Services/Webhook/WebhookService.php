@@ -5,7 +5,7 @@ namespace App\Services\Webhook;
 use App\Adapters\Registry\ServiceAdapterRegistry;
 use App\DTOs\WebhookEventDTO;
 use App\Jobs\ProcessWebhookDeliveryJob;
-use App\Models\ClientApiKey;
+use App\Models\WebhookEvent;
 use App\Repositories\Contracts\ServiceRepositoryInterface;
 use App\Repositories\Contracts\WebhookDeliveryRepositoryInterface;
 use App\Repositories\Contracts\WebhookEventRepositoryInterface;
@@ -53,6 +53,11 @@ class WebhookService
         $supported = $adapter::getSupportedWebhookEvents();
         $isIgnored = ! empty($supported) && ! in_array($dto->eventType, $supported, true);
 
+        $apiLog = $adapter->getOriginalClientApiGateWayLog($dto->payload);
+        if ($isIgnored and is_null($apiLog)) {
+            $isIgnored = false;
+        }
+
         $webhookEvent = $this->eventRepo->store([
             'service_id' => $service->id,
             'event_type' => $dto->eventType,
@@ -61,10 +66,22 @@ class WebhookService
             'raw_headers' => $dto->headers,
             'raw_payload' => $dto->payload,
             'status' => $isIgnored ? 'ignored' : 'received',
+            'client_api_key_id' => $apiLog->client_api_key_id ?? null,
         ]);
+
+        if (! $apiLog) {
+            Log::info('Webhook event ignored (unable to get original apiLog)', [
+                'webhook_id' => $webhookEvent->id,
+                'service' => $serviceSlug,
+                'event_type' => $dto->eventType,
+            ]);
+
+            return;
+        }
 
         if ($isIgnored) {
             Log::info('Webhook event ignored (unsupported type)', [
+                'webhook_id' => $webhookEvent->id,
                 'service' => $serviceSlug,
                 'event_type' => $dto->eventType,
             ]);
@@ -90,42 +107,48 @@ class WebhookService
         }
 
         // coming back to this let see how to handle webhook for each client subscription
-        // $this->fanOutToClients($adapter, $dto, $webhookEvent->id, $service->id);
+        $this->fanOutToClients($adapter, $dto, $webhookEvent);
     }
 
-    protected function fanOutToClients(
-        $adapter,
-        WebhookEventDTO $dto,
-        int $webhookEventId,
-        int $serviceId
-    ): void {
+    protected function fanOutToClients($adapter, WebhookEventDTO $dto, WebhookEvent $webhookEvent): void
+    {
         // Load all active subscriptions for this service that have a webhook URL
-        $subscriptions = ClientApiKey::where('service_id', $serviceId)
-            ->whereNotNull('webhook_url')
-            ->with('client')
-            ->get()
-            ->filter(fn (ClientApiKey $key) => $key->client?->hasWebhook() ?? false);
+        $subscription = $webhookEvent->clientApiKey()->first();
+        $eventMapper = $adapter->mapWebhookEventToAdapterCredentials();
 
-        foreach ($subscriptions as $subscription) {
-            // Build the normalized client payload using the adapter
-            $clientPayload = $adapter->transformWebhookForClient($dto);
-
-            // Persist delivery record (pending)
-            $delivery = $this->deliveryRepo->store([
-                'webhook_event_id' => $webhookEventId,
-                'client_api_key_id' => $subscription->id,
-                'client_webhook_url' => $subscription->webhook_url,
-                'delivery_payload' => $clientPayload,
-                'status' => 'pending',
-                'attempts' => 0,
+        if(!isset($subscription->credentials['subscription'][$eventMapper[$webhookEvent->event_type]])) {
+            Log::info('Webhook event trigger error, no webhook url', [
+                'webhook_id' => $webhookEvent->id,
+                'event_type' => $dto->eventType,
             ]);
-
-            // Dispatch queued job for HTTP delivery
-            ProcessWebhookDeliveryJob::dispatch(
-                $delivery,
-                $clientPayload,
-                $subscription->webhook_url,
-            );
+            return ;
         }
+
+        $webhookURL = $subscription->credentials['subscription'][$eventMapper[$webhookEvent->event_type]];
+        $clientPayload = $adapter->transformWebhookForClient($dto);
+
+        if(empty($webhookURL)) {
+            Log::info('Webhook event trigger error, no webhook url', [
+                'webhook_id' => $webhookEvent->id,
+                'event_type' => $dto->eventType,
+            ]);
+        }
+
+        // Persist delivery record (pending)
+        $delivery = $this->deliveryRepo->store([
+            'webhook_event_id' => $webhookEvent->id,
+            'client_api_key_id' => $subscription->id,
+            'client_webhook_url' => $webhookURL,
+            'delivery_payload' => ['headers' => $dto->headers, 'payload' => $clientPayload],
+            'status' => 'pending',
+            'attempts' => $subscription->credentials['subscription']['webhook_retries_per_day'],
+        ]);
+
+        // Dispatch queued job for HTTP delivery
+        ProcessWebhookDeliveryJob::dispatch(
+            $delivery,
+            $clientPayload,
+            $delivery->client_webhook_url,
+        );
     }
 }

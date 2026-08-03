@@ -5,6 +5,7 @@ namespace App\Adapters\Contracts;
 use App\DTOs\NormalizedResponseDTO;
 use App\DTOs\ProxyRequestDTO;
 use App\DTOs\WebhookEventDTO;
+use App\Models\ApiGatewayLog;
 use App\Models\Service;
 use Illuminate\Http\Request;
 
@@ -27,6 +28,8 @@ interface ServiceAdapterInterface
     public function verifyWebhookSignature(Request $request): bool;
 
     public function handleWebhook(WebhookEventDTO $event): array;
+
+    public function getOriginalClientApiGateWayLog(array $payload): ?ApiGatewayLog;
 
     public function transformWebhookForClient(WebhookEventDTO $event): array;
     public static function getSupportedWebhookUrls(string $serviceUuid): array;

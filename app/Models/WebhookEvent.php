@@ -19,6 +19,7 @@ class WebhookEvent extends Model
         'raw_payload',
         'webhook_response',
         'status',
+        'client_api_key_id'
     ];
 
     protected $casts = [
@@ -41,5 +42,10 @@ class WebhookEvent extends Model
     public function deliveries(): HasMany
     {
         return $this->hasMany(WebhookDelivery::class);
+    }
+
+    public function clientApiKey(): BelongsTo
+    {
+        return $this->belongsTo(ClientApiKey::class, 'client_api_key_id');
     }
 }

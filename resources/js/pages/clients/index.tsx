@@ -323,8 +323,10 @@ export default function ClientsIndex({
                         service_id: parseInt(selectedServiceId),
                         rate_limit: parseInt(customRateLimit),
                         environment: subscriptionEnv,
-                        credentials: subscriptionCredentials,
-                        ...(isMixedLevel ? subscriptionFields : {}),
+                        credentials: {
+                            ...subscriptionCredentials,
+                            ...(isMixedLevel ? subscriptionFields : {}),
+                        },
                     }),
                 },
             );

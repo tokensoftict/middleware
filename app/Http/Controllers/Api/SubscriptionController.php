@@ -69,11 +69,7 @@ class SubscriptionController extends Controller
                     $adapterClass::getSubscriptionValidationRules()
                 );
 
-                $extraCreds = array_filter(
-                    $subFields,
-                    static fn ($key) => $key !== 'webhook_url',
-                    ARRAY_FILTER_USE_KEY
-                );
+                $extraCreds = [...$subFields];
 
                 if (! empty($extraCreds)) {
                     $validated['credentials'] = array_merge(

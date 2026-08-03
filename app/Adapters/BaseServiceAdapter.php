@@ -6,6 +6,7 @@ use App\Adapters\Contracts\ServiceAdapterInterface;
 use App\DTOs\NormalizedResponseDTO;
 use App\DTOs\ProxyRequestDTO;
 use App\DTOs\WebhookEventDTO;
+use App\Models\ApiGatewayLog;
 use App\Models\ClientApiKey;
 use App\Models\Service;
 use Exception;
@@ -218,5 +219,10 @@ abstract class BaseServiceAdapter implements ServiceAdapterInterface
     public function mapWebhookEventToAdapterCredentials(): array
     {
         return [];
+    }
+
+    public function getOriginalClientApiGateWayLog(array $payload): ?ApiGatewayLog
+    {
+        return null;
     }
 }

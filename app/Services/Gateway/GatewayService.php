@@ -52,6 +52,7 @@ class GatewayService
         $this->logRepo->log([
             'client_id' => $apiKey->client_id,
             'service_id' => $service->id,
+            'client_api_key_id' => $apiKey->id,
             'endpoint_called' => $requestDto->path,
             'request_method' => $requestDto->method,
             'request_payload' => $requestDto->payload,
